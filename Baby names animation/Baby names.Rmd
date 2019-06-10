@@ -1,0 +1,235 @@
+---
+title: "Names"
+author: "R Gogliotti"
+date: "May 31, 2019"
+output: html_document
+---
+Visuals created by Rose Gogliotti.
+Represents the most common names by birth year. 
+
+Data source: Social Security Administration 
+Availible: https://www.ssa.gov/oact/babynames/limits.html
+
+Data is provided in yearly files that include names, gender and count of biths that registered the name with the SSA
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+setwd("~/Names")
+temp <-  list.files(pattern="*.txt")
+head(temp)
+year <- 1880:2018
+```
+
+
+```{r}
+datalist=list()
+n <- length(year)
+
+for (i in 1:n) {
+    #read data
+    born<- read.delim(temp[i],header= FALSE, sep = ",")
+born$year <- year[i] # add year designation
+    datalist[[i]] <- born # add it to list
+   
+}
+
+ bname <-  do.call(rbind, datalist) # combine all lists
+ 
+ colnames(bname) <- c("name","gender", "count", "year")
+bname <- (as.data.frame(bname))
+bname$name <- as.character(bname$name)
+```
+
+```{r}
+library(tidyverse)
+str(bname)
+justf <- bname[bname$gender=="F",]
+uniquenamef <- unique(justf$name)
+
+justm <- bname[bname$gender=="M",]
+uniquenamem <- unique(justm$name)
+```
+
+
+```{r}
+# Ranking function by year 
+ranking_f_y<- function(n){
+        data_g <- bname %>% 
+                group_by(year) %>%
+                mutate(rank = rank(-count)) %>%
+                ungroup() %>%
+                arrange(year,rank) %>%
+                filter(rank <= n)
+         data_g
+}
+
+#Ranking and coding countries
+data_graph <- ranking_f_y(10)
+```
+
+
+```{r}
+# Plotting Overall
+library(viridis)# color
+library(gganimate) # animation
+p <- ggplot(data_graph, aes(rank,  group=name,
+                     color = as.factor(gender), fill = as.factor(gender))) +
+        geom_tile(aes(y = count/2,
+                      height = count,
+                      width = 0.9, fill = as.factor(gender)), alpha = 0.6, color = NA) +
+        geom_text(aes(y = 0, label = paste(name, " ")), vjust = 0.5, hjust = 1) +
+        geom_text(aes(y = count + 3000, label = paste(count, " "))) + #adds label
+       # scale_fill_viridis_d(option = "plasma", alpha = 1) +
+        #scale_color_viridis_d(option = "plasma", alpha = 1)+
+        coord_flip(clip = "off", expand = FALSE) +
+        scale_y_continuous(labels = scales::comma) +
+        scale_x_reverse() +
+        theme_minimal() +
+        guides(color = FALSE, fill = FALSE) +
+        labs(subtitle=paste0("Year: ",'{closest_state}'),
+             title = "Top 10 baby names by year",
+             caption = "Data source:Social Security Administration \n Availible: https://www.ssa.gov/oact/babynames/limits.html \n Visual Created by Rose Gogliotti",
+             x = "", y = "") +
+        theme(plot.title = element_text(hjust = 0, vjust = 0, size = 14, color = plasma(1, alpha = 1)),
+              plot.subtitle = element_text(hjust = 0, vjust = 0, size = 14, color = plasma(1, alpha = 1, begin = 0.4)),
+              plot.caption = element_text(hjust = 0, vjust = 0, size = 12, color = plasma(1, alpha = 1, begin = 0.8)),
+              panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+              axis.ticks.y = element_blank(),  # These relate to the axes post-flip
+              axis.text.y  = element_blank(),  # These relate to the axes post-flip
+              axis.text.x = element_blank(),
+              plot.margin = margin(1,1,1,4, "cm")) +
+        #Adding transition states
+        transition_states(year, transition_length = 7, state_length = 1) +
+        enter_fade() + 
+        exit_shrink() +
+        ease_aes('cubic-in-out')
+
+# Animating plot
+anim <- animate(p, fps = 20, duration = 120, width = 600, height = 400)
+
+# Saving animation as gif
+save_animation(anim, "namesbothgenders.gif")
+```
+
+#Female
+
+```{r}
+# Ranking function by year 
+ranking_f_y<- function(n){
+        data_g <- justf %>% 
+                group_by(year) %>%
+                mutate(rank = rank(-count)) %>%
+                ungroup() %>%
+                arrange(year,rank) %>%
+                filter(rank <= n)
+         data_g
+}
+
+#Ranking and coding countries
+data_graph <- ranking_f_y(10)
+```
+
+```{r}
+# Plotting just female
+p <- ggplot(data_graph, aes(rank,  group=name,
+                     color = as.factor(name), fill = as.factor(name))) +
+        geom_tile(aes(y = count/2,
+                      height = count,
+                      width = 0.9, fill = as.factor(name)), alpha = 0.6, color = NA) +
+        geom_text(aes(y = 0, label = paste(name, " ")), vjust = 0.5, hjust = 1) +
+        geom_text(aes(y = count + 3500, label = paste(count, " "))) + #adds label
+        scale_fill_viridis_d(option = "plasma", alpha = 1) +
+        scale_color_viridis_d(option = "plasma", alpha = 1)+
+        coord_flip(clip = "off", expand = FALSE) +
+        scale_y_continuous(labels = scales::comma) +
+        scale_x_reverse() +
+        theme_minimal() +
+        guides(color = FALSE, fill = FALSE) +
+        labs(subtitle=paste0("Year: ",'{closest_state}'),
+             title = "Top 10 female baby names by year",
+             caption = "Data source:Social Security Administration \n Availible: https://www.ssa.gov/oact/babynames/limits.html \n Visual Created by Rose Gogliotti",
+             x = "", y = "") +
+        theme(plot.title = element_text(hjust = 0, vjust = 0, size = 14, color = plasma(1, alpha = 1)),
+              plot.subtitle = element_text(hjust = 0, vjust = 0, size = 14, color = plasma(1, alpha = 1, begin = 0.4)),
+              plot.caption = element_text(hjust = 0, vjust = 0, size = 12, color = plasma(1, alpha = 1, begin = 0.8)),
+              panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+              axis.ticks.y = element_blank(),  # These relate to the axes post-flip
+              axis.text.y  = element_blank(),  # These relate to the axes post-flip
+              axis.text.x = element_blank(),
+              plot.margin = margin(1,1,1,4, "cm")) +
+        #Adding transition states
+        transition_states(year, transition_length = 8, state_length = 1) +
+        enter_fade() + 
+        exit_shrink() +
+        ease_aes('cubic-in-out')
+
+# Animating plot
+anim <- animate(p, fps = 20, duration = 120, width = 600, height = 400)
+
+# Saving animation as gif
+save_animation(anim, "namesfemale.gif")
+```
+
+#Male visual
+
+```{r}
+# Ranking function by year 
+ranking_f_y<- function(n){
+        data_g <- justm %>% 
+                group_by(year) %>%
+                mutate(rank = rank(-count)) %>%
+                ungroup() %>%
+                arrange(year,rank) %>%
+                filter(rank <= n)
+         data_g
+}
+
+#Ranking and coding countries
+data_graph <- ranking_f_y(10)
+```
+
+```{r}
+# Plotting just male
+p <- ggplot(data_graph, aes(rank,  group=name,
+                     color = as.factor(name), fill = as.factor(name))) +
+        geom_tile(aes(y = count/2,
+                      height = count,
+                      width = 0.9, fill = as.factor(name)), alpha = 0.6, color = NA) +
+        geom_text(aes(y = 0, label = paste(name, " ")), vjust = 0.5, hjust = 1) +
+        geom_text(aes(y = count + 3500, label = paste(count, " "))) + #adds label
+        scale_fill_viridis_d(option = "viridis", alpha = 1) +
+        scale_color_viridis_d(option = "viridis", alpha = 1)+
+        coord_flip(clip = "off", expand = FALSE) +
+        scale_y_continuous(labels = scales::comma) +
+        scale_x_reverse() +
+        theme_minimal() +
+        guides(color = FALSE, fill = FALSE) +
+        labs(subtitle=paste0("Year: ",'{closest_state}'),
+             title = "Top 10 male baby names by year",
+             caption = "Data source: Social Security Administration \n Availible: https://www.ssa.gov/oact/babynames/limits.html \n Visual Created by Rose Gogliotti",
+             x = "", y = "") +
+        theme(plot.title = element_text(hjust = 0, vjust = 0, size = 14, color = plasma(1, alpha = 1)),
+              plot.subtitle = element_text(hjust = 0, vjust = 0, size = 14, color = plasma(1, alpha = 1, begin = 0.4)),
+              plot.caption = element_text(hjust = 0, vjust = 0, size = 12, color = plasma(1, alpha = 1, begin = 0.8)),
+              panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+              axis.ticks.y = element_blank(),  # These relate to the axes post-flip
+              axis.text.y  = element_blank(),  # These relate to the axes post-flip
+              axis.text.x = element_blank(),
+              plot.margin = margin(1,1,1,4, "cm")) +
+        #Adding transition states
+        transition_states(year, transition_length = 8, state_length = 1) +
+        enter_fade() + 
+        exit_shrink() +
+        ease_aes('cubic-in-out')
+
+# Animating plot
+anim <- animate(p, fps = 20, duration = 120, width = 600, height = 400)
+
+# Saving animation as gif
+save_animation(anim, "namesmale.gif")
+```
+
